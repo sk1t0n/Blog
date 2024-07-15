@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Blog.Models.Post>
+﻿@model HomePageViewModel
 
 @{
     ViewData["Title"] = "Index";
@@ -9,39 +9,50 @@
 <p>
     <a asp-action="Create">Create New</a>
 </p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Title)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Content)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Title)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Content)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
+@if (Model.Posts.Count > 0)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Content</th>
+                <th>Created At</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+    @foreach (var item in Model.Posts) {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Title)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Content)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.CreatedAt)
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+    }
+        </tbody>
+    </table>
 }
-    </tbody>
-</table>
+else
+{
+    <p>No posts.</p>
+}
+
+<div class="py-4">
+    <p>Tags</p>
+    @foreach(var tag in Model.Tags)
+    {
+        <span class="text-primary">
+            <a asp-area="" asp-controller="Posts" asp-action="Index" asp-route-tagId="@tag.Id">@tag.Name</a>
+        </span>
+    }
+</div>

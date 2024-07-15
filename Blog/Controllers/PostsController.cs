@@ -1,5 +1,6 @@
 ﻿using Blog.Data;
 using Blog.Models;
+using Blog.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,9 +16,27 @@ namespace Blog.Controllers
         }
 
         // GET: Posts
-        public async Task<IActionResult> Index()
+        public IActionResult Index(int? tagId)
         {
-            return View(await _context.Posts.ToListAsync());
+            List<Post> posts = default!;
+
+            if (tagId is not null)
+            {
+                posts = _context.Posts
+                    .Where(p => p.Tags.Any(t => t.Id == tagId))
+                    .ToList();
+            }
+            else
+            {
+                posts = _context.Posts.ToList();
+            }
+
+            var viewModel = new HomePageViewModel()
+            {
+                Posts = posts,
+                Tags = _context.Tags.ToList(),
+            };
+            return View(viewModel);
         }
 
         // GET: Posts/Details/5
@@ -29,13 +48,22 @@ namespace Blog.Controllers
             }
 
             var post = await _context.Posts
+                .Include("Tags")
+                .Include("Comments")
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (post == null)
             {
                 return NotFound();
             }
 
-            return View(post);
+            PostDetailsPageViewModel viewModel = new PostDetailsPageViewModel()
+            {
+                Post = post,
+                Tags = string.Join(" ", post.Tags.Select(t => t.Name)),
+                Comments = post.Comments
+            };
+
+            return View(viewModel);
         }
 
         // GET: Posts/Create
@@ -84,7 +112,7 @@ namespace Blog.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Title,Content")] Post post)
+        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Title,Content,CreatedAt")] Post post)
         {
             if (id != post.Id)
             {

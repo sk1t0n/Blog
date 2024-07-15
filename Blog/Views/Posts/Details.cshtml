@@ -1,4 +1,4 @@
-﻿@model Blog.Models.Post
+﻿@model PostDetailsPageViewModel
 
 @{
     ViewData["Title"] = "Details";
@@ -11,26 +11,44 @@
     <hr />
     <dl class="row">
         <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Title)
+            @Html.DisplayNameFor(model => model.Post.Title)
         </dt>
         <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Title)
+            @Html.DisplayFor(model => model.Post.Title)
         </dd>
         <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Content)
+            @Html.DisplayNameFor(model => model.Post.Content)
         </dt>
         <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Content)
+            @Html.DisplayFor(model => model.Post.Content)
         </dd>
         <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
+            @Html.DisplayNameFor(model => model.Post.CreatedAt)
         </dt>
         <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
+            @Html.DisplayFor(model => model.Post.CreatedAt)
         </dd>
+        <dt class="col-sm-2">Tags</dt>
+        <dd class="col-sm-10">@Model.Tags</dd>
     </dl>
 </div>
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
+    <p>Comments:</p>
+    @if(Model.Comments.Count > 0)
+    {
+        <ul>
+            @foreach(var comment in Model.Comments)
+            {
+                <li>@comment.Content</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>No comments.</p>
+    }
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.Post.Id">Edit</a> |
     <a asp-action="Index">Back to List</a>
 </div>
