@@ -12,16 +12,18 @@ namespace Blog.Data.Repositories
             _context = context;
         }
 
-        public async Task<List<Post>> FindPosts()
+        public IQueryable<Post> FindPosts()
         {
-            return await _context.Posts.ToListAsync();
+            return from post in _context.Posts
+                   orderby post.Title
+                   select post;
         }
 
-        public async Task<List<Post>> FindPostsByTagId(int tagId)
+        public IQueryable<Post> FindPostsByTagId(int tagId)
         {
-            return await _context.Posts
+            return _context.Posts
                 .Where(p => p.Tags.Any(t => t.Id == tagId))
-                .ToListAsync();
+                .OrderBy(p => p.Title);
         }
 
         public async Task<Post?> FindPostById(Guid id)

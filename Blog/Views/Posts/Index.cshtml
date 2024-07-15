@@ -52,7 +52,31 @@ else
     @foreach(var tag in Model.Tags)
     {
         <span class="text-primary">
-            <a asp-area="" asp-controller="Posts" asp-action="Index" asp-route-tagId="@tag.Id">@tag.Name</a>
+            <a asp-area="" asp-controller="Posts" 
+            asp-action="Index" asp-route-tagId="@tag.Id" asp-route-page="@Model.Posts.PageIndex">@tag.Name</a>
         </span>
     }
 </div>
+
+@{
+    var prevDisabled = !Model.Posts.HasPreviousPage ? "disabled" : "";
+    var nextDisabled = !Model.Posts.HasNextPage ? "disabled" : "";
+    string? paramTagId = Context.Request.Query["tagId"];
+}
+
+<a asp-area=""
+   asp-controller="Posts"
+   asp-action="Index"
+   asp-route-page="@(Model.Posts.PageIndex - 1)"
+   asp-route-tagId="@paramTagId"
+   class="btn btn-primary @prevDisabled">
+    Previous
+</a>
+<a asp-area=""
+   asp-controller="Posts"
+   asp-action="Index"
+   asp-route-page="@(Model.Posts.PageIndex + 1)"
+   asp-route-tagId="@paramTagId"
+   class="btn btn-primary @nextDisabled">
+    Next
+</a>

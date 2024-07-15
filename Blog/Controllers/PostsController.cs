@@ -1,5 +1,6 @@
 ﻿using Blog.Data;
 using Blog.Data.Repositories;
+using Blog.Helpers;
 using Blog.Models;
 using Blog.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -12,30 +13,38 @@ namespace Blog.Controllers
         private readonly ApplicationDbContext _context;
         private readonly PostsRepository _postsRepository;
         private readonly TagsRepository _tagsRepository;
+        private readonly IConfiguration _configuration;
 
         public PostsController(
             ApplicationDbContext context,
             PostsRepository postsRepository,
-            TagsRepository tagsRepository)
+            TagsRepository tagsRepository,
+            IConfiguration configuration)
         {
             _context = context;
             _postsRepository = postsRepository;
             _tagsRepository = tagsRepository;
+            _configuration = configuration;
         }
 
         // GET: Posts
-        public async Task<IActionResult> Index(int? tagId)
+        public async Task<IActionResult> Index(int? tagId, int page = 1)
         {
-            List<Post> posts = default!;
+            IQueryable<Post> query = default!;
 
             if (tagId is not null)
             {
-                posts = await _postsRepository.FindPostsByTagId(tagId.Value);
+                query = _postsRepository.FindPostsByTagId(tagId.Value);
             }
             else
             {
-                posts = await _postsRepository.FindPosts();
+                query = _postsRepository.FindPosts();
             }
+
+            page = page < 1 ? 1 : page;
+            var pageSize = _configuration.GetValue("PageSize", 4);
+            var posts = await PaginatedList<Post>.CreateAsync(
+                query.AsNoTracking(), page, pageSize);
 
             var viewModel = new HomePageViewModel()
             {
@@ -169,9 +178,9 @@ namespace Blog.Controllers
             var post = await _postsRepository.FindPostById(id);
             if (post != null)
             {
-               await _postsRepository.RemovePost(post);
+                await _postsRepository.RemovePost(post);
             }
-            
+
             return RedirectToAction(nameof(Index));
         }
     }
