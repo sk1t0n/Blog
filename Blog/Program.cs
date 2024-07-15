@@ -20,6 +20,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var serviceProvider = scope.ServiceProvider;
+        DatabaseSeeder.Seed(serviceProvider);
+    };
 }
 else
 {
