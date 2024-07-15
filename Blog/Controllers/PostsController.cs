@@ -1,4 +1,5 @@
 ﻿using Blog.Data;
+using Blog.Data.Repositories;
 using Blog.Models;
 using Blog.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -9,32 +10,37 @@ namespace Blog.Controllers
     public class PostsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly PostsRepository _postsRepository;
+        private readonly TagsRepository _tagsRepository;
 
-        public PostsController(ApplicationDbContext context)
+        public PostsController(
+            ApplicationDbContext context,
+            PostsRepository postsRepository,
+            TagsRepository tagsRepository)
         {
             _context = context;
+            _postsRepository = postsRepository;
+            _tagsRepository = tagsRepository;
         }
 
         // GET: Posts
-        public IActionResult Index(int? tagId)
+        public async Task<IActionResult> Index(int? tagId)
         {
             List<Post> posts = default!;
 
             if (tagId is not null)
             {
-                posts = _context.Posts
-                    .Where(p => p.Tags.Any(t => t.Id == tagId))
-                    .ToList();
+                posts = await _postsRepository.FindPostsByTagId(tagId.Value);
             }
             else
             {
-                posts = _context.Posts.ToList();
+                posts = await _postsRepository.FindPosts();
             }
 
             var viewModel = new HomePageViewModel()
             {
                 Posts = posts,
-                Tags = _context.Tags.ToList(),
+                Tags = await _tagsRepository.FindTags()
             };
             return View(viewModel);
         }
@@ -47,10 +53,7 @@ namespace Blog.Controllers
                 return NotFound();
             }
 
-            var post = await _context.Posts
-                .Include("Tags")
-                .Include("Comments")
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var post = await _postsRepository.FindPostWithTagsAndComments(id.Value);
             if (post == null)
             {
                 return NotFound();
@@ -84,8 +87,7 @@ namespace Blog.Controllers
                 post.Id = Guid.NewGuid();
                 post.CreatedAt = DateTime.Now;
                 post.UpdatedAt = post.CreatedAt;
-                _context.Add(post);
-                await _context.SaveChangesAsync();
+                await _postsRepository.AddPost(post);
                 return RedirectToAction(nameof(Index));
             }
             return View(post);
@@ -99,7 +101,7 @@ namespace Blog.Controllers
                 return NotFound();
             }
 
-            var post = await _context.Posts.FindAsync(id);
+            var post = await _postsRepository.FindPostById(id.Value);
             if (post == null)
             {
                 return NotFound();
@@ -124,12 +126,11 @@ namespace Blog.Controllers
                 try
                 {
                     post.UpdatedAt = DateTime.Now;
-                    _context.Update(post);
-                    await _context.SaveChangesAsync();
+                    await _postsRepository.UpdatePost(post);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!PostExists(post.Id))
+                    if (!_postsRepository.PostExists(post.Id))
                     {
                         return NotFound();
                     }
@@ -151,8 +152,7 @@ namespace Blog.Controllers
                 return NotFound();
             }
 
-            var post = await _context.Posts
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var post = await _postsRepository.FindPostById(id.Value);
             if (post == null)
             {
                 return NotFound();
@@ -166,19 +166,13 @@ namespace Blog.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
-            var post = await _context.Posts.FindAsync(id);
+            var post = await _postsRepository.FindPostById(id);
             if (post != null)
             {
-                _context.Posts.Remove(post);
+               await _postsRepository.RemovePost(post);
             }
-
-            await _context.SaveChangesAsync();
+            
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool PostExists(Guid id)
-        {
-            return _context.Posts.Any(e => e.Id == id);
         }
     }
 }
