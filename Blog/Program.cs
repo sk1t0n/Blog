@@ -2,6 +2,10 @@
 using Blog.Data.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +21,28 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddScoped<PostsRepository>();
 builder.Services.AddScoped<TagsRepository>();
+
+var prometheusUrl = builder.Configuration.GetValue<string>("PrometheusUrl") ?? throw new InvalidOperationException("PrometheusUrl cannot be empty.");
+builder.Services
+    .AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddProcessInstrumentation()
+        .AddOtlpExporter((exporterOptions, metricReaderOptions) =>
+        {
+            exporterOptions.Endpoint = new Uri(prometheusUrl!);
+            exporterOptions.Protocol = OtlpExportProtocol.HttpProtobuf;
+            metricReaderOptions.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = 1000;
+        })
+    )
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddOtlpExporter(builder => builder.Endpoint = new Uri(prometheusUrl!))
+    );
 
 var app = builder.Build();
 
@@ -36,6 +62,13 @@ else
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+}
+
+var needMigration = Environment.GetEnvironmentVariable("NeedMigration");
+if (needMigration is not null && needMigration.ToLower() == "true")
+{
+    var context = app.Services.GetService<ApplicationDbContext>();
+    context?.Database.Migrate();
 }
 
 app.UseHttpsRedirection();

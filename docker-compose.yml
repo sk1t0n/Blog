@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  web-app:
+    build:
+      context: .
+      dockerfile: './Blog/Dockerfile'
+    ports:
+      - '8080:8080'
+    environment:
+      NeedMigration: true
+      ConnectionStrings__DefaultConnection: 'Server=db;Database=Blog;User Id=sa;Password=yourStrong(!)Password;Trusted_Connection=False;TrustServerCertificate=True'
+    depends_on:
+      - db
+      - prometheus
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - '1433:1433'
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_SA_PASSWORD: 'yourStrong(!)Password'
+    volumes:
+      - 'mssql_data:/var/opt/mssql'
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - '3000:3000'
+    volumes:
+      - 'grafana-data:/var/lib/grafana'
+      - 'grafana-configs:/etc/grafana'
+    depends_on:
+      - prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - '9090:9090'
+    volumes:
+      - './prometheus.yml:/prometheus/prometheus.yml'
+      - 'prom-data:/prometheus'
+      - 'prom-configs:/etc/prometheus'
+    entrypoint: 'prometheus --enable-feature=otlp-write-receiver --config.file=/prometheus/prometheus.yml'
+
+volumes:
+  mssql_data:
+  grafana-data:
+  grafana-configs:
+  prom-data:
+  prom-configs:
